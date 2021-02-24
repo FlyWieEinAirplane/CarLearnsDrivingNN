@@ -5,14 +5,17 @@ import org.neuroph.core.NeuralNetwork;
 import org.neuroph.core.Neuron;
 import org.neuroph.core.Weight;
 import org.neuroph.nnet.MultiLayerPerceptron;
-import org.neuroph.util.TransferFunctionType;
 import processing.core.PVector;
 
-import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.Arrays;
 
+import static de.flywieeinairplane.drivingcar.World.GLOBAL_TRANSFER_FUNCTION;
+import static de.flywieeinairplane.drivingcar.World.NEURON_LAYER_DEFINITION;
 import static processing.core.PConstants.QUARTER_PI;
 
 public class Car implements Comparable{
+
     PVector acceleration = new PVector();
     PVector position;
     PVector velocity = new PVector();
@@ -41,7 +44,7 @@ public class Car implements Comparable{
         this.radius = radius;
         this.world = world;
 
-        nn = new MultiLayerPerceptron(TransferFunctionType.SIGMOID, 4, 12, 12, 3);
+        nn = new MultiLayerPerceptron(Arrays.asList(NEURON_LAYER_DEFINITION), GLOBAL_TRANSFER_FUNCTION);
 
     }
     public Car(PVector position, int radius, World world, NeuralNetwork nn) {
@@ -57,19 +60,15 @@ public class Car implements Comparable{
     public void updatePosition() {
 
         if (!crashed) {
-//        NN-stuff to decide acceleration
-
+//            decide acceleration
             nn.setInput(getInputLayerFromCar());
             nn.calculate();
             double[] outputs = nn.getOutput();
 
+//            apply NN output to vectors
             PVector frontAcceleration = new PVector((float) outputs[0], 0);
             PVector leftAcceleration = new PVector(0, -(float) outputs[1]);
             PVector rightAcceleration = new PVector(0, (float) outputs[2]);
-//            PVector frontAcceleration = new PVector(1, 0);
-//            PVector leftAcceleration = new PVector(0, -0.2f);
-//            PVector rightAcceleration = new PVector(0, 0);
-
 
 
             this.acceleration.add(frontAcceleration);
@@ -171,8 +170,15 @@ public class Car implements Comparable{
         return 0;
     }
 
+    /**
+     * create a copy of a Neural Network by
+     */
     public NeuralNetwork cloneMLPNN(NeuralNetwork oldNN){
-        NeuralNetwork newNetwork = new MultiLayerPerceptron(TransferFunctionType.SIGMOID, 4, 12, 12, 3);
+        ArrayList<Integer> neurons = new ArrayList<Integer>();
+        for (Layer layer : oldNN.getLayers()) {
+            neurons.add(layer.getNeurons().length);
+        }
+        NeuralNetwork newNetwork = new MultiLayerPerceptron(neurons, GLOBAL_TRANSFER_FUNCTION);
 
         for (int i = 0; i < oldNN.getLayers().length; i++) {
             Layer layer = oldNN.getLayerAt(i);
