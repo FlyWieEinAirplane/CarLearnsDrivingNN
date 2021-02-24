@@ -36,14 +36,12 @@ public class World extends PApplet {
         if (drawCourseMode) {
             System.out.println("Click on the world to create custom obstacles and create a racing track");
 //          Routine to save changes of Obstacles
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                public void run() {
-                    try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("obstalcleList"))) {
-                        oos.writeObject(obstacleList);
-                        System.out.println("Obstacles saved to file: " + obstacleList.size() + " Obstacles");
-                    } catch (IOException ioe) {
-                        ioe.printStackTrace();
-                    }
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("obstalcleList"))) {
+                    oos.writeObject(obstacleList);
+                    System.out.println("Obstacles saved to file: " + obstacleList.size() + " Obstacles");
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
                 }
             }));
         }
