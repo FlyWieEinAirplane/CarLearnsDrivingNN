@@ -1,6 +1,7 @@
 package de.flywieeinairplane.drivingcar;
 
 import org.neuroph.core.Layer;
+import org.neuroph.core.NeuralNetwork;
 import org.neuroph.core.Neuron;
 import org.neuroph.core.Weight;
 import org.neuroph.util.TransferFunctionType;
@@ -24,12 +25,17 @@ public class World extends PApplet {
 
 
     //    EDIT
-    private int generationSize = 10;
+    private int generationSize = 2;
     private boolean drawCar = true;
     private boolean drawSensors = false;
     private boolean drawCourseMode = false;
     static final TransferFunctionType GLOBAL_TRANSFER_FUNCTION = TransferFunctionType.SIGMOID;
     static final Integer[] NEURON_LAYER_DEFINITION = new Integer[]{4, 12, 12, 3};
+    private int updateSpeedMultiplier = 2;
+
+    // edit to load trained models for cars:
+    private boolean loadModelFromFile = true;
+    private String modelFileName = "_NN_1000000.nnet";
 
 
     public World() {
@@ -71,7 +77,18 @@ public class World extends PApplet {
 
 //        create Cars
         for (int i = 0; i < generationSize; i++) {
-            carList.add(new Car(carStartPosition.get(), 5, this));
+            if (loadModelFromFile) {
+                try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(modelFileName))) {
+                    NeuralNetwork nn = (NeuralNetwork) ois.readObject();
+                    System.out.println("Loading NN: " + nn.toString());
+                    carList.add(new Car(carStartPosition.get(), 5, this, nn));
+                } catch (IOException | ClassNotFoundException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            } else {
+                carList.add(new Car(carStartPosition.get(), 5, this));
+            }
         }
     }
 
@@ -94,7 +111,9 @@ public class World extends PApplet {
         fill(0, 255, 0);
         ArrayList<Car> carFinishedList = new ArrayList<Car>();
         for (Car car : carList) {
-            car.updatePosition();
+            for (int i = 0; i < updateSpeedMultiplier; i++) {
+                car.updatePosition();
+            }
 
             if (!car.crashed) {
 //            draw sensors

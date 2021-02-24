@@ -14,7 +14,7 @@ import static de.flywieeinairplane.drivingcar.World.GLOBAL_TRANSFER_FUNCTION;
 import static de.flywieeinairplane.drivingcar.World.NEURON_LAYER_DEFINITION;
 import static processing.core.PConstants.QUARTER_PI;
 
-public class Car implements Comparable{
+public class Car implements Comparable {
 
     PVector acceleration = new PVector();
     PVector position;
@@ -39,16 +39,13 @@ public class Car implements Comparable{
     boolean crashed;
 
     public Car(PVector position, int radius, World world) {
-
         this.position = position;
         this.radius = radius;
         this.world = world;
-
         nn = new MultiLayerPerceptron(Arrays.asList(NEURON_LAYER_DEFINITION), GLOBAL_TRANSFER_FUNCTION);
-
     }
-    public Car(PVector position, int radius, World world, NeuralNetwork nn) {
 
+    public Car(PVector position, int radius, World world, NeuralNetwork nn) {
         this.position = position;
         this.radius = radius;
         this.world = world;
@@ -94,7 +91,7 @@ public class Car implements Comparable{
 
             this.acceleration.mult(0);
             this.distanceTraveled++;
-            this.fitnes = this.position.x  + this.distanceTraveled*3;
+            this.fitnes = this.position.x + this.distanceTraveled * 3;
         }
     }
 
@@ -147,7 +144,7 @@ public class Car implements Comparable{
 
 
     public double[] getInputLayerFromCar() {
-        double[] res =  {this.velocity.mag(), this.sensorFront, this.sensorLeft, this.sensorRight};
+        double[] res = {this.velocity.mag(), this.sensorFront, this.sensorLeft, this.sensorRight};
         return res;
     }
 
@@ -171,12 +168,18 @@ public class Car implements Comparable{
     }
 
     /**
-     * create a copy of a Neural Network by
+     * create a copy of a Neural Network by creating copies of layers, neurons, weights
      */
-    public NeuralNetwork cloneMLPNN(NeuralNetwork oldNN){
+    public NeuralNetwork cloneMLPNN(NeuralNetwork oldNN) {
         ArrayList<Integer> neurons = new ArrayList<Integer>();
-        for (Layer layer : oldNN.getLayers()) {
-            neurons.add(layer.getNeurons().length);
+        Layer[] layers = oldNN.getLayers();
+        for (int i = 0; i < layers.length; i++) {
+            Layer layer = layers[i];
+            if (i != layers.length - 1) {
+                neurons.add(layer.getNeurons().length - 1);
+            } else {
+                neurons.add(layer.getNeurons().length);
+            }
         }
         NeuralNetwork newNetwork = new MultiLayerPerceptron(neurons, GLOBAL_TRANSFER_FUNCTION);
 
