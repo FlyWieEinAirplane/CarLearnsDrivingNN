@@ -7,35 +7,51 @@ import org.neuroph.core.Weight;
 import org.neuroph.util.TransferFunctionType;
 import processing.core.PApplet;
 import processing.core.PVector;
+import processing.event.KeyEvent;
+import processing.event.MouseEvent;
 
+import java.awt.event.MouseWheelEvent;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
 public class World extends PApplet {
-    private ArrayList<Generation> generationList = new ArrayList<Generation>();
+
+    private ArrayList<Generation> generationList = new ArrayList<>();
     Random random = new Random();
     int heigt = 900;
     int width = 1600;
+    private int currentObstacleRadius = 30;
 
-    ArrayList<Obstacle> obstacleList = new ArrayList<Obstacle>();
+    ArrayList<Obstacle> obstacleList = new ArrayList<>();
+    ArrayList<Checkpoint> checkpointList = new ArrayList<>();
     ArrayList<Car> carList = new ArrayList<Car>();
-    PVector carStartPosition = new PVector(30, 85);
+    PVector carStartPosition = new PVector(150, 185);
 
 
     //    EDIT
-    private int generationSize = 2;
-    private boolean drawCar = true;
-    private boolean drawSensors = false;
-    private boolean drawCourseMode = false;
+
+    private int generationSize = 2; // change the number of cars per generation
+    private boolean drawCourseMode = false; // enable/disable creating new world
+    private boolean drawCar = true; // enable/disable drawing the car
+    private boolean drawCheckpoints = true; // enable/disable drawing the checkpoints used for training
+    private boolean drawObstacles = true; // enable/disable drawing the obstacles making the
+    private boolean drawSensors = false; // enable/disable drawing the sensors of the car
+    // transfer function used by the neuralNet to calculate weights
     static final TransferFunctionType GLOBAL_TRANSFER_FUNCTION = TransferFunctionType.SIGMOID;
+    // Number of input, hidden and output layers of the neuralNet
     static final Integer[] NEURON_LAYER_DEFINITION = new Integer[]{4, 12, 12, 3};
+    // filename to load/save environment from (obstacles and checkpoints)
+    public static final String ENVIRONMENT_FILENAME = "env01";
+    // number of car updates calculated per frame (used to speed up the progress)
     private int updateSpeedMultiplier = 2;
 
     // edit to load trained models for cars:
-    private boolean loadModelFromFile = true;
-    private String modelFileName = "_NN_1000000.nnet";
+    private boolean loadModelFromFile = false; // enable/disable loading a pretrained model
+    private String modelFileName = "_NN_1000000.nnet"; // file to save/load NN  model from/to
+    private boolean keepTrainingModel = true; // enable/disable training of the model
+
 
 
     public World() {
@@ -43,8 +59,8 @@ public class World extends PApplet {
             System.out.println("Click on the world to create custom obstacles and create a racing track");
 //          Routine to save changes of Obstacles
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("obstalcleList"))) {
-                    oos.writeObject(obstacleList);
+                try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(ENVIRONMENT_FILENAME))) {
+                    oos.writeObject(new Environment(obstacleList, checkpointList));
                     System.out.println("Obstacles saved to file: " + obstacleList.size() + " Obstacles");
                 } catch (IOException ioe) {
                     ioe.printStackTrace();
@@ -54,26 +70,27 @@ public class World extends PApplet {
     }
 
     public void setup() {
-        if (!drawCourseMode) {
 //        Load Obstacle List
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("obstalcleList"))) {
-                this.obstacleList = (ArrayList) ois.readObject();
-                System.out.println("Obstacles loaded from file: " + obstacleList.size() + " Obstacles");
-            } catch (FileNotFoundException e) {
-                System.out.println("No File found: start with a blank map");
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-                return;
-            } catch (ClassNotFoundException c) {
-                System.out.println("Class not found");
-                c.printStackTrace();
-                return;
-            }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(ENVIRONMENT_FILENAME))) {
+            Environment env = (Environment) ois.readObject();
+            this.obstacleList = env.obstacleList;
+            this.checkpointList = env.checkpointList;
+            System.out.println("Obstacles loaded from file: " + obstacleList.size());
+            System.out.println("Checkpoints loaded from file: " + checkpointList.size());
+        } catch (FileNotFoundException e) {
+            System.out.println("No File found: start with a blank map");
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            return;
+        } catch (ClassNotFoundException c) {
+            System.out.println("Class not found");
+            c.printStackTrace();
+            return;
         }
 
 //        setup frame
         size(this.width, this.heigt);
-        frameRate(60);
+        frameRate(30);
 
 //        create Cars
         for (int i = 0; i < generationSize; i++) {
@@ -98,17 +115,36 @@ public class World extends PApplet {
 
 //        Draw Obstacles
         fill(255);
-        for (Obstacle obstacle :
-                obstacleList) {
+        for (Obstacle obstacle : obstacleList) {
             ellipse(obstacle.position.x, obstacle.position.y, obstacle.radius * 2, obstacle.radius * 2);
         }
+        stroke(255);
+        for (Checkpoint checkpoint : checkpointList) {
+            line(checkpoint.start.x, checkpoint.start.y, checkpoint.end.x, checkpoint.end.y);
+        }
+        noStroke();
 
         if (drawCourseMode) {
+//            draw preview of objects that can be created
+            fill(150);
+            if (drawObstacles) {
+                ellipse(mouseX, mouseY, currentObstacleRadius * 2, currentObstacleRadius * 2);
+            } else if (drawCheckpoints) {
+                stroke(255);
+                if (checkpointStartVector != null) {
+                    rect(checkpointStartVector.x, checkpointStartVector.y, 5, 5);
+                    line(checkpointStartVector.x, checkpointStartVector.y,mouseX, mouseY);
+                }
+                rect(mouseX, mouseY, 5, 5);
+            }
+            fill(255,0,0);
+            ellipse(carStartPosition.x, carStartPosition.y, 5, 5);
 //            do not continue drawing anything else if we just want to create a new course
             return;
         }
 //        Draw Cars
         fill(0, 255, 0);
+        noStroke();
         ArrayList<Car> carFinishedList = new ArrayList<Car>();
         for (Car car : carList) {
             for (int i = 0; i < updateSpeedMultiplier; i++) {
@@ -184,9 +220,63 @@ public class World extends PApplet {
     /**
      * Create a new obstacle at the cursor position when in drawCourseMode
      */
+    @Override
     public void mouseClicked() {
         if (drawCourseMode) {
-            this.obstacleList.add(new Obstacle(new PVector(mouseX, mouseY), 30));
+            if (drawObstacles) {
+                this.obstacleList.add(new Obstacle(new PVector(mouseX, mouseY), currentObstacleRadius));
+            }
+        }
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        super.mouseWheelMoved(e);
+        if (e.getWheelRotation() < 0) {
+            if (currentObstacleRadius < 500)
+                currentObstacleRadius++;
+        } else {
+            if (currentObstacleRadius > 2)
+                currentObstacleRadius--;
+        }
+    }
+
+    private PVector checkpointStartVector = null;
+
+    @Override
+    public void mousePressed(MouseEvent event) {
+        super.mousePressed(event);
+        if (drawCourseMode & drawCheckpoints) {
+//            set start of checkpoint
+            checkpointStartVector = new PVector(mouseX, mouseY);
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent event) {
+        super.mouseReleased(event);
+        if (drawCourseMode) {
+            if (drawObstacles) {
+//                add obstacle at mouse position
+                this.obstacleList.add(new Obstacle(new PVector(mouseX, mouseY), currentObstacleRadius));
+            } else if (drawCheckpoints) {
+//                add checkpoint at mouse position
+                this.checkpointList.add(new Checkpoint(checkpointStartVector, new PVector(mouseX, mouseY)));
+                checkpointStartVector = null;
+            }
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent event) {
+        super.keyTyped(event);
+        //        change mode of creating obstacles or checkpoints
+        if (event.getKey() == 'o') {
+            drawCheckpoints = false;
+            drawObstacles = true;
+        } else if (event.getKey() == 'c') {
+            drawCheckpoints = true;
+            drawObstacles = false;
         }
     }
 
@@ -224,7 +314,6 @@ public class World extends PApplet {
      * randomize a portion of all the weights of the NN
      */
     public void mutation(ArrayList<Car> carList, float mutationRate) {
-        ArrayList<Car> newCars = new ArrayList<Car>();
         for (Car car : carList) {
             for (Layer layer : car.nn.getLayers()) {
                 for (Neuron neuron : layer.getNeurons()) {

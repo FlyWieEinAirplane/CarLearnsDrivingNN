@@ -176,6 +176,7 @@ public class Car implements Comparable {
         for (int i = 0; i < layers.length; i++) {
             Layer layer = layers[i];
             if (i != layers.length - 1) {
+//                when cloning we need to exclude the bias neuron
                 neurons.add(layer.getNeurons().length - 1);
             } else {
                 neurons.add(layer.getNeurons().length);
