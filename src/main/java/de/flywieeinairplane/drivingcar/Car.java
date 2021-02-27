@@ -201,7 +201,7 @@ public class Car implements Comparable {
 
     public void updateSensors() {
         PVector frontDistance = velocity.get();
-        frontDistance.limit(0.1f);
+        frontDistance.limit(2.0f);
         PVector leftDistance = frontDistance.get();
         leftDistance.rotate(-QUARTER_PI);
         PVector rightDistance = frontDistance.get();
