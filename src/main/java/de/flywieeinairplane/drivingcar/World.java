@@ -42,7 +42,7 @@ public class World extends PApplet {
     // transfer function used by the neuralNet to calculate weights
     static final TransferFunctionType GLOBAL_TRANSFER_FUNCTION = TransferFunctionType.SIGMOID;
     // Number of input, hidden and output layers of the neuralNet
-    static final Integer[] NEURON_LAYER_DEFINITION = new Integer[]{4, 12, 12, 3};
+    static final Integer[] NEURON_LAYER_DEFINITION = new Integer[]{4, 8, 3};
     // filename to load/save environment from (obstacles and checkpoints)
     public static final String ENVIRONMENT_FILENAME = "env01";
     // number of car updates calculated per frame (used to speed up the progress)
