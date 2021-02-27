@@ -239,7 +239,7 @@ public class Car implements Comparable {
 
 
     public double[] getInputLayerFromCar() {
-        double[] res = {this.velocity.mag()/MAX_SPEED, this.sensorFront/SENSOR_RANGE, this.sensorLeft/SENSOR_RANGE, this.sensorRight/SENSOR_RANGE};
+        double[] res = {this.velocity.mag()/MAX_SPEED, this.sensorFront/MAX_SPEED, this.sensorLeft/MAX_SPEED, this.sensorRight/MAX_SPEED};
         return res;
     }
 
