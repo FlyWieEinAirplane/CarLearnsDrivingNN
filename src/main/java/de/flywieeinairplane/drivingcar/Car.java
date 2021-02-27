@@ -7,6 +7,8 @@ import org.neuroph.core.Weight;
 import org.neuroph.nnet.MultiLayerPerceptron;
 import processing.core.PVector;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -97,7 +99,10 @@ public class Car implements Comparable {
             } else {
                 distanceSinceLastCheckpoint = 0;
             }
-            if (collidesWithObstacles(this.position) || collidesWithBoundary() || distanceSinceLastCheckpoint > 800) {
+            if (collidesWithObstacles(this.position)
+                    || collidesWithBoundary()
+                    || distanceSinceLastCheckpoint > 1500 // to avoid circling
+                    || distanceTraveled > 10000) { // to avoid endless generations when a first collision avoidance is learned
                 this.crashed = true;
             }
 
@@ -120,7 +125,7 @@ public class Car implements Comparable {
         }
         nextCheckpoint = this.world.checkpointList.get(latestCheckpointCrossedIndex + 1);
         if (doIntersect(nextCheckpoint.start, nextCheckpoint.end, oldPos, newPos)) {
-            return 6000*(++latestCheckpointCrossedIndex+1);
+            return 6000*(++latestCheckpointCrossedIndex+1); // add arbitrary bonus for crossed checkpoints
         }
         return 0;
     }
