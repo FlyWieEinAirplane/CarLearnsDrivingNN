@@ -12,8 +12,10 @@ import processing.event.MouseEvent;
 
 import java.awt.event.MouseWheelEvent;
 import java.io.*;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Random;
 
 public class World extends PApplet {
@@ -32,12 +34,12 @@ public class World extends PApplet {
 
     //    EDIT
 
-    private int generationSize = 2; // change the number of cars per generation
+    private int generationSize = 30; // change the number of cars per generation
     private boolean drawCourseMode = false; // enable/disable creating new world
     private boolean drawCar = true; // enable/disable drawing the car
     private boolean drawCheckpoints = true; // enable/disable drawing the checkpoints used for training
     private boolean drawObstacles = true; // enable/disable drawing the obstacles making the
-    private boolean drawSensors = false; // enable/disable drawing the sensors of the car
+    private boolean drawSensors = true; // enable/disable drawing the sensors of the car
     // transfer function used by the neuralNet to calculate weights
     static final TransferFunctionType GLOBAL_TRANSFER_FUNCTION = TransferFunctionType.SIGMOID;
     // Number of input, hidden and output layers of the neuralNet
@@ -45,12 +47,12 @@ public class World extends PApplet {
     // filename to load/save environment from (obstacles and checkpoints)
     public static final String ENVIRONMENT_FILENAME = "env01";
     // number of car updates calculated per frame (used to speed up the progress)
-    private int updateSpeedMultiplier = 2;
+    private final int updateSpeedMultiplier = 2;
 
     // edit to load trained models for cars:
-    private boolean loadModelFromFile = false; // enable/disable loading a pretrained model
-    private String modelFileName = "_NN_1000000.nnet"; // file to save/load NN  model from/to
-    private boolean keepTrainingModel = true; // enable/disable training of the model
+    private final boolean loadModelFromFile = false; // enable/disable loading a pretrained model
+    private final String modelFileName = "_NN_1000000.nnet"; // file to save/load NN  model from/to
+    private final boolean keepTrainingModel = true; // enable/disable training of the model
 
 
 
@@ -61,6 +63,15 @@ public class World extends PApplet {
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(ENVIRONMENT_FILENAME))) {
                     oos.writeObject(new Environment(obstacleList, checkpointList));
+                    System.out.println("Obstacles saved to file: " + obstacleList.size() + " Obstacles");
+                } catch (IOException ioe) {
+                    ioe.printStackTrace();
+                }
+            }));
+        } else {
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(Instant.now() + "_save.nnet"))) {
+                    oos.writeObject(carList.stream().max(Car::compareTo).orElseThrow(IllegalArgumentException::new).nn);
                     System.out.println("Obstacles saved to file: " + obstacleList.size() + " Obstacles");
                 } catch (IOException ioe) {
                     ioe.printStackTrace();
@@ -290,16 +301,16 @@ public class World extends PApplet {
         Collections.sort(carList); //0 is the worst, carList.size()-1 is the best
         float fitnesSum = 0;
         for (Car car : carList) {
-            fitnesSum += car.fitnes;
+            fitnesSum += car.fitness;
         }
         for (int i = 0; i < carList.size(); i++) {
             float randomFloat = random.nextInt((int) fitnesSum);
             for (Car car : carList) {
-                if (randomFloat < car.fitnes) {
+                if (randomFloat < car.fitness) {
                     newCars.add(car.clone(this.carStartPosition.get(), true));
                     break;
                 } else {
-                    randomFloat -= car.fitnes;
+                    randomFloat -= car.fitness;
                 }
             }
         }

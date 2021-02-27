@@ -31,12 +31,12 @@ public class Generation {
             if (car.position.x > this.maxScore) {
                 this.maxScore = car.position.x;
             }
-            if (car.fitnes > this.maxFitnes) {
-                this.maxFitnes = car.fitnes;
+            if (car.fitness > this.maxFitnes) {
+                this.maxFitnes = car.fitness;
             }
             distanceTraveledSum +=car.distanceTraveled;
             scoreSum += car.position.x;
-            fitnesSum += car.fitnes;
+            fitnesSum += car.fitness;
         }
         averageDistanceTraveled = distanceTraveledSum / numberOfCars;
         averageScore = scoreSum / numberOfCars;
